@@ -1,0 +1,220 @@
+#include <Servo.h>
+#include <AFMotor.h>
+Servo myservo;
+#define PUMP 2
+
+#define LM1 3
+#define LM2 5
+#define RM1 6
+#define RM2 9
+
+#define SERVO 11
+
+#define RF 10
+#define MF 12
+#define LF 13
+
+#define RIR A0
+#define MIR A1
+#define LIR A2
+
+#define GAS A3
+#define BUZZ 4
+
+bool fire = false;
+int pos = 0;
+int centerIR;
+int leftIR;
+int rightIR;
+
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(PUMP, OUTPUT);
+  pinMode(RF,INPUT); // F1 Right side flame sensor
+  pinMode(MF,INPUT); // F2 Middle flame sensor
+  pinMode(LF,INPUT); // F3  Left side flame sensor
+
+  pinMode(LM1, OUTPUT);
+  pinMode(LM2, OUTPUT);
+  pinMode(RM1, OUTPUT);
+  pinMode(RM2, OUTPUT);
+
+  pinMode(BUZZ, OUTPUT);
+
+  myservo.attach(11);
+  myservo.write(90); 
+
+}
+
+void reverse()
+{
+  Serial.println("Backing up");
+  LM1.setSpeed(150); // Adjust speed as needed
+  LM1.run(BACKWARD);
+  LM2.setSpeed(150); // Adjust speed as needed
+  LM2.run(BACKWARD);
+  RM1.setSpeed(150); // Adjust speed as needed
+  RM1.run(BACKWARD);
+  RM2.setSpeed(150); // Adjust speed as needed
+  RM2.run(BACKWARD);
+  delay(1000);
+}
+void deviateLeft()
+{
+  Serial.println("Left");
+  reverse();
+  LM1.setSpeed(150); // Adjust speed as needed
+  LM1.run(FORWARD);
+  LM2.setSpeed(150); // Adjust speed as needed
+  LM2.run(BACKWARD);
+  RM1.setSpeed(150); // Adjust speed as needed
+  RM1.run(FORWARD);
+  RM2.setSpeed(150); // Adjust speed as needed
+  RM2.run(BACKWARD);
+  delay(300);
+}
+
+void deviateRight()
+{
+  Serial.println("Right");
+  reverse();
+  LM1.setSpeed(150); // Adjust speed as needed
+  LM1.run(BACKWARD);
+  LM2.setSpeed(150); // Adjust speed as needed
+  LM2.run(FORWARD);
+  RM1.setSpeed(150); // Adjust speed as needed
+  RM1.run(BACKWARD);
+  RM2.setSpeed(150); // Adjust speed as needed
+  RM2.run(FORWARD);
+  delay(300);
+}
+void forward()
+{
+  Serial.println("Forward");
+  LM1.setSpeed(150); // Adjust speed as needed
+  LM1.run(FORWARD);
+  LM2.setSpeed(150); // Adjust speed as needed
+  LM2.run(FORWARD);
+  RM1.setSpeed(150); // Adjust speed as needed
+  RM1.run(FORWARD);
+  RM2.setSpeed(150); // Adjust speed as needed
+  RM2.run(FORWARD);
+}
+void adjust_car() {
+  if (leftIR < 200) {
+    turnRight();
+    delay(300);
+  } else if (rightIR < 200) {
+    turnLeft();
+    delay(300);
+  } else {
+    reverse();
+    delay(1000);
+    stopMotors();
+  }
+}
+void stopMotors() {
+  motor1.run(RELEASE);
+  motor2.run(RELEASE);
+  motor3.run(RELEASE);
+  motor4.run(RELEASE);
+}
+void move_to_fire(){
+  centerIR = analogRead(MIR);
+  leftIR = analogRead(LIR);
+  rightIR = analogRead(RIR);
+  while(centreIR < 200){
+    adjust_car();
+    centerIR = analogRead(MIR);
+    leftIR = analogRead(LIR);
+    rightIR = analogRead(RIR);
+  }
+  
+  forward();
+
+  
+}
+  
+void put_off_fire(){
+  move_to_fire();
+  digitalWrite(PUMP, HIGH);
+   delay(500);
+    
+    for (pos = 50; pos <= 130; pos += 1) { 
+    myservo.write(pos); 
+    delay(10);  
+  }
+  for (pos = 130; pos >= 50; pos -= 1) { 
+    myservo.write(pos); 
+    delay(10);
+  }
+  
+  digitalWrite(pump,LOW);
+  myservo.write(90);
+  
+  fire=false;
+
+
+}
+
+void loop() {
+  myservo.write(90); //Sweep_Servo(); 
+  
+ 
+    if (digitalRead(LF) ==1 && digitalRead(RF)==1 && digitalRead(MF) ==1) 
+    {
+    
+    stopMotors();
+    }
+    else if (digitalRead(MF) ==0) //if middle sensor put of fire
+    {
+  
+    fire = true;
+    forawrd();
+    }
+    
+    else if (digitalRead(LF) ==0) //if left sensor turn right
+    {
+    Serial.println("Right");
+  reverse();
+  LM1.setSpeed(150); // Adjust speed as needed
+  LM1.run(BACKWARD);
+  LM2.setSpeed(150); // Adjust speed as needed
+  LM2.run(FORWARD);
+  RM1.setSpeed(150); // Adjust speed as needed
+  RM1.run(BACKWARD);
+  RM2.setSpeed(150); // Adjust speed as needed
+  RM2.run(FORWARD);
+    }
+    
+    else if (digitalRead(RF) ==0) //if right sensor turn left
+    {
+    Serial.println("Left");
+  reverse();
+  LM1.setSpeed(150); // Adjust speed as needed
+  LM1.run(FORWARD);
+  LM2.setSpeed(150); // Adjust speed as needed
+  LM2.run(BACKWARD);
+  RM1.setSpeed(150); // Adjust speed as needed
+  RM1.run(FORWARD);
+  RM2.setSpeed(150); // Adjust speed as needed
+  RM2.run(BACKWARD);
+    }
+    delay(300);
+    gas_value = analogRead(GAS);
+    if (gas_value > 200){
+      digitWrite(BUZZ, HIGH);
+      delay(1000);
+    }
+
+    while (fire == true)
+     {
+      put_off_fire();
+     }
+
+
+
+
+
+
+}
